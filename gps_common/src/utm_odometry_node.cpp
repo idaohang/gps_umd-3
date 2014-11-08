@@ -18,8 +18,8 @@ double rot_cov;
 
 void callback(const sensor_msgs::NavSatFixConstPtr& fix) {
   if (fix->status.status == sensor_msgs::NavSatStatus::STATUS_NO_FIX) {
-    ROS_INFO("No fix.");
-    return;
+  //  ROS_INFO("No fix.");
+  //  return;
   }
 
   if (fix->header.stamp == ros::Time(0)) {
@@ -33,7 +33,7 @@ void callback(const sensor_msgs::NavSatFixConstPtr& fix) {
 
   if (odom_pub) {
     nav_msgs::Odometry odom;
-    odom.header.stamp = fix->header.stamp;
+    odom.header.stamp = ros::Time::now();
 
     if (frame_id.empty())
       odom.header.frame_id = fix->header.frame_id;
@@ -80,14 +80,20 @@ int main (int argc, char **argv) {
   ros::init(argc, argv, "utm_odometry_node");
   ros::NodeHandle node;
   ros::NodeHandle priv_node("~");
-
   priv_node.param<std::string>("frame_id", frame_id, "");
   priv_node.param<std::string>("child_frame_id", child_frame_id, "");
   priv_node.param<double>("rot_covariance", rot_cov, 99999.0);
-
   odom_pub = node.advertise<nav_msgs::Odometry>("odom", 10);
+  ros::Subscriber fix_sub;
+  if (argc != 2){
+        fix_sub = node.subscribe("/fix", 10, callback);
+  }
+  else
+  {
+    std::string name_space = argv[1];
+    fix_sub = node.subscribe(name_space+"/fix", 10, callback);
+  }
 
-  ros::Subscriber fix_sub = node.subscribe("fix", 10, callback);
 
   ros::spin();
 }
